@@ -1,6 +1,11 @@
 (ns spalbench.g4file
   (:use clojure.contrib.duck-streams))
 
+(defn blank-string?
+  "Check whether the string is blank or not"
+  [#^String s]
+  (every? (fn [#^Character c] (Character/isWhitespace c)) s))
+ 
 (defn- read-ddxs-datafile
   "Read Geant4 double-differential spectrun file into a lazy sequence."
   [f]
@@ -25,4 +30,6 @@
   (split-lines (apply str (interpose " " (remove-pipe-chars f)))))
 
 (defn read-g4file []
-  (read-and-preprocess-file "data/p_Pb_1200_ddxsn_g4bic.txt"))
+  (doseq [x (read-and-preprocess-file "data/p_Pb_1200_ddxsn_g4bic.txt")]
+    (if (not (blank-string? x))
+	(print (str x "\n")))))
