@@ -3,6 +3,5 @@
    (:use spalbench.g4file))
 
 (defn -main [& args]
-  (read-g4file)
-  (println "hoi maailma"))
+  (print (first (read-g4file))))
 
