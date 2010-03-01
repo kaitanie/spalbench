@@ -42,7 +42,7 @@
 	   quoted? false     ;; Are we inside a quoted string?
 	   current-char (first characters)
 	   remaining-chars (rest characters)]
-      (let [unquoted-separator? (fn [char] (and field-separator? (not quoted?)))
+      (let [unquoted-separator? (fn [char] (and (field-separator? char) (not quoted?)))
 	    lf? (fn [current-char?] (= \newline current-char))
 	    crlf? (fn [current-char remaining-chars] (and (= \return current-char)
 							  (= \newline (first remaining-chars))))
