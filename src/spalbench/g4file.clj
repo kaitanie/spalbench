@@ -37,9 +37,14 @@
   "Extract the list of angles from the first line of the file"
   [line]
   (let [characters (seq line)]
-    (loop [angles []         ;; Collect the list of angles
-	   current-field []  ;; The current position in the string
-	   quoted? false     ;; Are we inside a quoted string?
+    (loop [angles []           ;; Collect the list of angles in format:
+	                       ;; {:angle xx :label "xx degrees"}
+	   current-field []    ;; The current position in the string
+;;	   current-angle []    ;; The current position in the string
+;;	   current-label []    ;; The current position in the label string
+	   quoted? false       ;; Are we inside a quoted string?
+;;	   in-field? false     ;; Are we inside a field?
+;;	   in-whitespace false ;; Are we swimming in a sea of whitespace?
 	   current-char (first characters)
 	   remaining-chars (rest characters)]
       (let [unquoted-separator? (fn [char] (and (field-separator? char) (not quoted?)))
@@ -49,30 +54,39 @@
 	    field-with-remainder (fn [remaining-chars] (vector (conj angles
 								     (apply str current-field))
 							       remaining-chars))]
-	(cond (nil? current-char) (field-with-remainder nil) ;; We have reached the end of the sequence
-	      (and (not quoted?) (lf? current-char)) (field-with-remainder remaining-chars)
-	      (and (not quoted?) (crlf? current-char remaining-chars)) (field-with-remainder (rest remaining-chars))
-	      (unquoted-separator? current-char) (recur (conj angles (apply str current-field))
-							[]
-							quoted?
-							(first remaining-chars)
-							(rest remaining-chars))
-	      (= \" current-char) (if (and (= \" (first remaining-chars)) quoted?)
-				    (recur angles
-					   (conj current-field \")
-					   quoted?
-					   (first (rest remaining-chars))
-					   (rest (rest remaining-chars)))
-				    (recur angles
-					   current-field
-					   (not quoted?)
-					   (first remaining-chars)
-					   (rest remaining-chars)))
-	      true (recur angles
-			  (conj current-field current-char)
-			  quoted?
-			  (first remaining-chars)
-			  (rest remaining-chars)))))))
+	;; Parse different cases:
+	(cond
+	 ;; We have reached the end of the sequence
+	 (nil? current-char) (field-with-remainder nil)
+	 ;; End of the line (LF)
+	 (and (not quoted?) (lf? current-char)) (field-with-remainder remaining-chars)
+	 ;; End of the line (CRLF)
+	 (and (not quoted?) (crlf? current-char remaining-chars)) (field-with-remainder (rest remaining-chars))
+	 ;; Field separator that is not quoted
+	 (unquoted-separator? current-char) (recur (conj angles (apply str current-field))
+						   []
+						   quoted?
+						   (first remaining-chars)
+						   (rest remaining-chars))
+	 ;; Separator can be inside a quoted field
+	 (= \" current-char) (if (and (= \" (first remaining-chars)) quoted?)
+			       (recur angles
+				      (conj current-field \")
+				      quoted?
+				      (first (rest remaining-chars))
+				      (rest (rest remaining-chars)))
+			       (recur angles
+				      current-field
+				      (not quoted?)
+				      (first remaining-chars)
+				      (rest remaining-chars)))
+	 ;; Otherwise we just take combine the current character with the field
+	 ;; and continue start processing the remainder of the string
+	 true (recur angles
+		     (conj current-field current-char)
+		     quoted?
+		     (first remaining-chars)
+		     (rest remaining-chars)))))))
 
 (defn read-g4file []
   (let [data (line-seq (BufferedReader. (FileReader. "data/p_Pb_1200_ddxsn_g4bic.txt")))
