@@ -43,8 +43,8 @@
 ;;	   current-angle []    ;; The current position in the string
 ;;	   current-label []    ;; The current position in the label string
 	   quoted? false       ;; Are we inside a quoted string?
-;;	   in-field? false     ;; Are we inside a field?
-;;	   in-whitespace false ;; Are we swimming in a sea of whitespace?
+	   in-field? false     ;; Are we inside a field?
+	   in-whitespace? false ;; Are we swimming in a sea of whitespace?
 	   current-char (first characters)
 	   remaining-chars (rest characters)]
       (let [unquoted-separator? (fn [char] (and (field-separator? char) (not quoted?)))
@@ -66,6 +66,8 @@
 	 (unquoted-separator? current-char) (recur (conj angles (apply str current-field))
 						   []
 						   quoted?
+						   (not in-field?)
+						   in-whitespace?
 						   (first remaining-chars)
 						   (rest remaining-chars))
 	 ;; Separator can be inside a quoted field
@@ -73,11 +75,15 @@
 			       (recur angles
 				      (conj current-field \")
 				      quoted?
+				      in-field?
+				      in-whitespace?
 				      (first (rest remaining-chars))
 				      (rest (rest remaining-chars)))
 			       (recur angles
 				      current-field
 				      (not quoted?)
+				      in-field?
+				      in-whitespace?
 				      (first remaining-chars)
 				      (rest remaining-chars)))
 	 ;; Otherwise we just take combine the current character with the field
@@ -85,6 +91,8 @@
 	 true (recur angles
 		     (conj current-field current-char)
 		     quoted?
+		     in-field?
+		     in-whitespace?
 		     (first remaining-chars)
 		     (rest remaining-chars)))))))
 
