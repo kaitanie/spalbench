@@ -1,4 +1,4 @@
-(defproject spalbench "1.0.0-SNAPSHOT"
+(defproject spalbench "0.0.1-SNAPSHOT"
   :description "Spallation plotting application"
   :repositories {"incanter" "http://repo.incanter.org"}
   :dependencies [[org.clojure/clojure "1.1.0"]
