@@ -40,9 +40,9 @@
   (loop [current-field []
 	 current-char (first current-line)
 	 remaining-chars (rest current-line)]
-    (let [separator? (fn [char] (or (= \newline char) (= \space char)))]
+    (let [separator? (fn [#^Character char] (or (= \newline char) (Character/isWhitespace char)))]
       (cond
-       (separator? current-char) [(apply str current-field) remaining-chars]
+       (or (separator? current-char) (empty? remaining-chars)) [(apply str (conj current-field current-char)) remaining-chars]
        true (recur (conj current-field current-char)
 		   (first remaining-chars)
 		   (rest remaining-chars))))))
@@ -53,8 +53,8 @@
   (loop [remaining input-seq]
     (let [whitespace? (fn [char] (blank-string? (str char)))
 	  current-char (first remaining)]
-      (cond (nil? current-char) nil
-	    (whitespace? current-char) (recur (rest remaining))
+      (cond (or (nil? current-char) (empty? (str current-char))) nil
+	    (and (whitespace? current-char) (not (empty? remaining))) (recur (rest remaining))
 	    true (let [[token new-remaining] (parse-token remaining)]
 		   [token new-remaining])))))
 
@@ -135,13 +135,18 @@
   (let [data (line-seq (BufferedReader. (FileReader. "data/p_Pb_1200_ddxsn_g4bic.txt")))
 	first-line (first data)
 	[first-token rest-of-the-data] (parse-token "abc def")
-	tokens (tokenize-line "abc def")]
+	my-token (find-token "  abc")
+	tokens (tokenize-line first-line)]
     (doseq [d data]
       (print (str "new item: " d "\n")))
     (print (str "first line: " first-line "\n"))
     (doseq [item (parse-list-of-angles first-line)]
       (print item))
-     (print (str "\n First token: " first-token "\n"))))
+     (print (str "\n First token: " first-token "\n"))
+     (print (str "\n My-token: " my-token "\n"))
+     (print "Tokens:\n")
+     (doseq [item tokens]
+       (print (str item "\n")))))
 
 ;;  (doseq [x (read-and-preprocess-file "data/p_Pb_1200_ddxsn_g4bic.txt")]
 ;;    (if (not (blank-string? x))
