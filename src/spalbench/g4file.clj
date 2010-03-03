@@ -33,6 +33,41 @@
 (defn- field-separator? [char]
   (= char \|))
 
+(defn- parse-token
+  "Extract one token separated by separator characters. Returns the
+  token and the rest of the sequence."
+  [current-line]
+  (loop [current-field []
+	 current-char (first current-line)
+	 remaining-chars (rest current-line)]
+    (let [separator? (fn [char] (or (= \newline char) (= \space char)))]
+      (cond
+       (separator? current-char) [(apply str current-field) remaining-chars]
+       true (recur (conj current-field current-char)
+		   (first remaining-chars)
+		   (rest remaining-chars))))))
+
+(defn- find-token
+  "Skip over whitespace and comment sections. Resturns the next token and the remaining seq."
+  [input-seq]
+  (loop [remaining input-seq]
+    (let [whitespace? (fn [char] (blank-string? (str char)))
+	  current-char (first remaining)]
+      (cond (nil? current-char) nil
+	    (whitespace? current-char) (recur (rest remaining))
+	    true (let [[token new-remaining] (parse-token remaining)]
+		   [token new-remaining])))))
+
+(defn- tokenize-line [line]
+  (let [line-seq (seq line)]
+    (loop [tokens []
+	   remaining line-seq]
+      (do (print "processing: " remaining "\n")
+      (cond (or (empty? remaining) (= \newline (first remaining))) tokens
+	    true (let [[new-token new-remainder] (find-token remaining)]
+		   (recur (conj tokens new-token)
+			  new-remainder)))))))
+
 (defn- parse-list-of-angles
   "Extract the list of angles from the first line of the file"
   [line]
@@ -90,12 +125,15 @@
 
 (defn read-g4file []
   (let [data (line-seq (BufferedReader. (FileReader. "data/p_Pb_1200_ddxsn_g4bic.txt")))
-	first-line (first data)]
+	first-line (first data)
+	[first-token rest-of-the-data] (parse-token "abc def")
+	tokens (tokenize-line "abc def")]
     (doseq [d data]
       (print (str "new item: " d "\n")))
     (print (str "first line: " first-line "\n"))
     (doseq [item (parse-list-of-angles first-line)]
-      (print item))))
+      (print item))
+     (print (str "\n First token: " first-token "\n"))))
 
 ;;  (doseq [x (read-and-preprocess-file "data/p_Pb_1200_ddxsn_g4bic.txt")]
 ;;    (if (not (blank-string? x))
