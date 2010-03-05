@@ -42,7 +42,8 @@
 	 remaining-chars (rest current-line)]
     (let [separator? (fn [#^Character char] (or (= \newline char) (Character/isWhitespace char)))]
       (cond
-       (or (separator? current-char) (empty? remaining-chars)) [(apply str (conj current-field current-char)) remaining-chars]
+       (or (separator? current-char)
+	   (empty? remaining-chars)) [(apply str (conj current-field current-char)) remaining-chars]
        true (recur (conj current-field current-char)
 		   (first remaining-chars)
 		   (rest remaining-chars))))))
