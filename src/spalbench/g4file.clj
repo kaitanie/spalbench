@@ -45,11 +45,29 @@
   (let [line-seq (seq line)]
     (loop [tokens []
 	   remaining line-seq]
-      (do (print "processing: " remaining "\n")
       (cond (or (empty? remaining) (= \newline (first remaining))) tokens
 	    true (let [[new-token new-remainder] (find-token remaining)]
 		   (recur (conj tokens new-token)
-			  new-remainder)))))))
+			  new-remainder))))))
+
+(defn- parse-header-line
+  "Extracts the list of angles."
+  [line]
+  (let [tokens (tokenize-line line)]
+    (loop [angles []
+	   current-angle nil
+	   in-angle-definition? false
+	   remaining-data tokens]
+      (let [current-token (first remaining-data)]
+	(print (str "Current token = \"" current-token "\" \n"))
+	(cond (.contains current-token "|") (recur angles nil in-angle-definition? (rest remaining-data))
+	      (.contains current-token "Angle-integrated") angles ;; Terminate the recursion
+	      true (recur (conj angles
+				{:angle (Double/parseDouble current-token)
+				 :label (str current-token (first (rest remaining-data)))})
+			  nil
+			  in-angle-definition?
+			  (rest (rest remaining-data))))))))
 
 (defn- parse-list-of-angles
   "Extract the list of angles from the first line of the file"
@@ -119,7 +137,7 @@
 	first-line (first data)
 	[first-token rest-of-the-data] (parse-token "abc def")
 	my-token (find-token "  abc")
-	tokens (tokenize-line first-line)]
+	tokens (parse-header-line first-line)]
     (doseq [d data]
       (print (str "new item: " d "\n")))
     (print (str "first line: " first-line "\n"))
