@@ -69,6 +69,30 @@
 			  in-angle-definition?
 			  (rest (rest remaining-data))))))))
 
+(defn- parse-data-line
+  "Extract data in format E Ebin | CX_angle1 dCX_angle1 CX_angle2 dCX_angle2 ... | CX dCX
+   The output is in format: {:E energy :dE energy-bin :ddxs [CX_angle1 ]"
+  [line angles]
+  (let [tokens (tokenize-line line)
+	energy-point {:E (Double/parseDouble (first tokens))
+		      :dE (Double/parseDouble (first (rest tokens)))}
+	xstokens (rest (rest tokens))]
+    ;; angles: {:angle 10 :data [{:E 10.0 :dE 0.5 :cx 32.0}]
+    (loop [angle-points {}
+	   remaining-angles angles
+	   remaining-tokens xstokens]
+      (let [xs (Double/parseDouble (first remaining-tokens))
+	    dxs (Double/parseDouble (first (rest remaining-tokens)))
+	    the-angle (first remaining-angles)
+	    new-data (conj (the-angle :data) {:E (energy-point :E)
+					      :dE (energy-point :dE)
+					      :cx xs :dcx dxs})
+	    new-angle-points (conj angle-points {:angle the-angle :data new-data})]
+	(cond (empty? (rest remaining-angles)) angles
+	      true (recur new-angle-points
+			  (rest remaining-angles)
+			  (rest (rest remaining-tokens))))))))
+
 (defn- parse-list-of-angles
   "Extract the list of angles from the first line of the file"
   [line]
