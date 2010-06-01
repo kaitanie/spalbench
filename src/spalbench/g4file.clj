@@ -172,26 +172,3 @@
 	data-lines (take data-block-length (rest (rest (rest (rest data)))))
         data-tokens (filter filter-fn (map parser-fn data-lines))]
     data-tokens))
-
-(defn read-g4file []
-  (let [data (line-seq (BufferedReader. (FileReader. "c:/Users/mael/src/spalbench/data/p_Pb_1200_ddxsn_g4bic.txt")))
-	first-line (first data)
-	[first-token rest-of-the-data] (parse-token "abc def")
-	my-token (find-token "  abc")
-	tokens (parse-header-line first-line)
-	angles (parse-list-of-angles first-line)
-	data-lines (take 20 (rest (rest (rest (rest data)))))
-	parser-fn (fn [d] (parse-data-line angles d))
-	parsed-data (map parser-fn data-lines)]
-    (doseq [d data]
-      (print (str "new item: " d "\n")))
-    (print (str "first line: " first-line "\n"))
-    (doseq [item (parse-list-of-angles first-line)]
-      (print item))
-     (print (str "\n First token: " first-token "\n"))
-     (print (str "\n My-token: " my-token "\n"))
-     (print "Tokens:\n")
-     (doseq [item tokens]
-       (print (str item "\n")))
-     (print parsed-data)))
-
