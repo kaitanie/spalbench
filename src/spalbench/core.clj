@@ -4,7 +4,10 @@
 	 spalbench.plot))
 
 (defn -main [& args]
-  (do
-    (plot-data [1.0 2.0 3.0] [1.0 2.0 3.0])
-    (print (first (read-g4file)))))
+  (let [data-map (g4file-read)
+	angle2 (map first data-map)
+	e-points (map #(% :E) angle2)
+	cx-points (map #(% :cx) angle2)]
+      (plot-data e-points cx-points)))
+
 

@@ -69,29 +69,27 @@
 			  in-angle-definition?
 			  (rest (rest remaining-data))))))))
 
-(defn- parse-data-line
-  "Extract data in format E Ebin | CX_angle1 dCX_angle1 CX_angle2 dCX_angle2 ... | CX dCX
-   The output is in format: {:E energy :dE energy-bin :ddxs [CX_angle1 ]"
-  [line angles]
-  (let [tokens (tokenize-line line)
-	energy-point {:E (Double/parseDouble (first tokens))
-		      :dE (Double/parseDouble (first (rest tokens)))}
-	xstokens (rest (rest tokens))]
-    ;; angles: {:angle 10 :data [{:E 10.0 :dE 0.5 :cx 32.0}]
-    (loop [angle-points {}
+(defn parse-data-line [angles line]
+  (let [filter-fn (fn [token] (not (. token contains "|")))
+	tokens (filter filter-fn (tokenize-line line))
+	E (Double/parseDouble (first tokens))
+	dE (Double/parseDouble (nth tokens 1))
+	angle-data (rest (rest (rest tokens)))]
+    (loop [points []
 	   remaining-angles angles
-	   remaining-tokens xstokens]
-      (let [xs (Double/parseDouble (first remaining-tokens))
-	    dxs (Double/parseDouble (first (rest remaining-tokens)))
-	    the-angle (first remaining-angles)
-	    new-data (conj (the-angle :data) {:E (energy-point :E)
-					      :dE (energy-point :dE)
-					      :cx xs :dcx dxs})
-	    new-angle-points (conj angle-points {:angle the-angle :data new-data})]
-	(cond (empty? (rest remaining-angles)) angles
-	      true (recur new-angle-points
-			  (rest remaining-angles)
-			  (rest (rest remaining-tokens))))))))
+	   remaining-tokens angle-data]
+      (cond (empty? remaining-angles) points
+	    true (let [current-angle (first remaining-angles)]
+		   (recur (conj points {:angle (current-angle :angle)
+					:label (current-angle :label)
+					:E E
+					:dE dE
+					:cx (Double/parseDouble
+					     (first remaining-tokens))
+					:dcx (Double/parseDouble
+					      (nth remaining-tokens 2))})
+				(rest remaining-angles)
+				(rest (rest remaining-tokens))))))))
 
 (defn- parse-list-of-angles
   "Extract the list of angles from the first line of the file"
@@ -156,12 +154,35 @@
 		     (first remaining-chars)
 		     (rest remaining-chars)))))))
 
+(defn get-data []
+  (let [data (line-seq (BufferedReader. (FileReader. "c:/Users/mael/src/spalbench/data/p_Pb_1200_ddxsn_g4bic.txt")))]
+    data))
+
+(defmacro nor [& body]
+  `(not (or ~@body)))
+
+(defn g4file-read []
+  (let [data (get-data)
+	header-line (first data)
+	angles (parse-header-line header-line)
+	filter-fn (fn [x] (nor (. x contains "|")
+			       (and (. x contains "-") (. x contains "+"))))
+	parser-fn (fn [x] (parse-data-line angles x))
+	data-block-length (- (count data) 2 4)
+	data-lines (take data-block-length (rest (rest (rest (rest data)))))
+        data-tokens (filter filter-fn (map parser-fn data-lines))]
+    data-tokens))
+
 (defn read-g4file []
-  (let [data (line-seq (BufferedReader. (FileReader. "data/p_Pb_1200_ddxsn_g4bic.txt")))
+  (let [data (line-seq (BufferedReader. (FileReader. "c:/Users/mael/src/spalbench/data/p_Pb_1200_ddxsn_g4bic.txt")))
 	first-line (first data)
 	[first-token rest-of-the-data] (parse-token "abc def")
 	my-token (find-token "  abc")
-	tokens (parse-header-line first-line)]
+	tokens (parse-header-line first-line)
+	angles (parse-list-of-angles first-line)
+	data-lines (take 20 (rest (rest (rest (rest data)))))
+	parser-fn (fn [d] (parse-data-line angles d))
+	parsed-data (map parser-fn data-lines)]
     (doseq [d data]
       (print (str "new item: " d "\n")))
     (print (str "first line: " first-line "\n"))
@@ -171,5 +192,6 @@
      (print (str "\n My-token: " my-token "\n"))
      (print "Tokens:\n")
      (doseq [item tokens]
-       (print (str item "\n")))))
+       (print (str item "\n")))
+     (print parsed-data)))
 
